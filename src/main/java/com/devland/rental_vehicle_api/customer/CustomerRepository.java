@@ -11,6 +11,7 @@ import com.devland.rental_vehicle_api.customer.model.Customer;
 public interface CustomerRepository extends JpaRepository<Customer, Integer> {
 
     Optional<Customer> findByName(String name);
+    Optional<Customer> findById(Integer id);
 
     Page<Customer> findAllByNameContainsIgnoreCase(String name, Pageable pageable);
 

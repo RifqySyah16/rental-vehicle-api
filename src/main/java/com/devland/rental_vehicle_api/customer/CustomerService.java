@@ -3,7 +3,7 @@ package com.devland.rental_vehicle_api.customer;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.devland.rental_vehicle_api.customer.model.Customer;
@@ -20,7 +20,7 @@ public class CustomerService {
                 .orElseThrow(() -> new CustomerNotFoundException("Customer ID Not Found"));
     }
 
-    public Page<Customer> getAll(Optional<String> optionalName, PageRequest pageable) {
+    public Page<Customer> getAll(Optional<String> optionalName, Pageable pageable) {
         if (optionalName.isPresent()) {
             return this.customerRepository.findAllByNameContainsIgnoreCase(optionalName.get(), pageable);
         }

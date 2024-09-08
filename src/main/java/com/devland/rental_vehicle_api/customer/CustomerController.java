@@ -38,9 +38,15 @@ public class CustomerController {
             @RequestParam(value = "limit", defaultValue = "1") int limit,
             @RequestParam(value = "page", defaultValue = "1") int page) {
 
-        Sort sort = Sort.by(Sort.Direction.valueOf(sortString), "id");
+        System.out.println("Page: " + page + ", Limit: " + limit);
+        System.out.println("Sort Direction: " + sortString + ", Order By: " + orderBy);
+
+        // Sort sort = Sort.by(Sort.Direction.valueOf(sortString), "id");
+        Sort sort = Sort.by(Sort.Direction.valueOf(sortString), orderBy);
         PageRequest pageable = PageRequest.of(page - 1, limit, sort);
         Page<Customer> pageCustomers = this.customerService.getAll(optionalName, pageable);
+        
+        System.out.println("Total Elements: " + pageCustomers.getTotalElements());
         Page<CustomerResponseDTO> customerResponseDTOs = pageCustomers.map(Customer::convertToResponse);
 
         return ResponseEntity.ok(customerResponseDTOs);

@@ -11,6 +11,7 @@ import com.devland.rental_vehicle_api.car.model.Car;
 public interface CarRepository extends JpaRepository<Car, Integer> {
 
     Optional<Car> findByModel(String model);
+    Optional<Car> findById(Integer id);
 
     Page<Car> findAllByModelContainsIgnoreCase(String model, Pageable pageable);
 }

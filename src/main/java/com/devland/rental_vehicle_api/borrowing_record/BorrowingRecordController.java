@@ -83,39 +83,113 @@ public class BorrowingRecordController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
+    // @PutMapping("/{id}")
+    // public ResponseEntity<BorrowingRecordResponseDTO> update(
+    //         @PathVariable("id") Integer id,
+    //         @RequestBody @Valid BorrowingRecordUpdateRequestDTO requestDTO) {
+        
+    //     if (requestDTO.getReturnDate() == null) {
+    //         return ResponseEntity.badRequest().body(null);
+    //     }
+    //     BorrowingRecord existingRecord = borrowingRecordService.findById(id);
+
+    //     if (existingRecord.getReturnDate() != null) {
+    //         return ResponseEntity.status(HttpStatus.CONFLICT)
+    //                 .body(null);
+    //     }
+    //     Car car = carService.getOneById(requestDTO.getCarId());
+    //     Customer customer = customerService.findById(requestDTO.getCustomerId());
+
+    //     boolean alreadyBorrowing = borrowingRecordService.isCarAlreadyRentedByCustomer(requestDTO.getCustomerId(), requestDTO.getCarId());
+
+    //     if (alreadyBorrowing && !existingRecord.getId().equals(id)) {
+    //         return ResponseEntity.status(HttpStatus.CONFLICT)
+    //                 .body(null); 
+    //     }
+
+    //     existingRecord.setCar(car);
+    //     existingRecord.setCustomer(customer);
+    //     existingRecord.setReturnDate(requestDTO.getReturnDate());
+        
+    //     if (requestDTO.getReturnDate().isBefore(LocalDateTime.now())) {
+    //         existingRecord.setStatus("RETURNED");
+    //     } else {
+    //         existingRecord.setStatus("RENTED");
+    //     }
+
+    //     BorrowingRecord updatedRecord = borrowingRecordService.update(existingRecord);
+    //     BorrowingRecordResponseDTO responseDTO = updatedRecord.convertToResponse();
+
+    //     return ResponseEntity.ok(responseDTO);
+    // }
+
     @PutMapping("/{id}")
-    public ResponseEntity<BorrowingRecordResponseDTO> update(
+    public ResponseEntity<Map<String, String>> update(
             @PathVariable("id") Integer id,
             @RequestBody @Valid BorrowingRecordUpdateRequestDTO requestDTO) {
-        
-        if (requestDTO.getReturnDate() == null) {
-            return ResponseEntity.badRequest().body(null);
+
+        Map<String, String> response = new HashMap<>();
+        try {
+            BorrowingRecord existingRecord = borrowingRecordService.findById(id);
+
+            if ("RETURNED".equals(existingRecord.getStatus())) {
+                response.put("messa", "Record has already been returned and cannot be updated.");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response); 
+            }
+
+            Car car = carService.getOneById(requestDTO.getCarId());
+            Customer customer = customerService.findById(requestDTO.getCustomerId());
+
+            boolean alreadyBorrowing = borrowingRecordService.isCarAlreadyRentedByCustomer(requestDTO.getCustomerId(), requestDTO.getCarId());
+
+            if (alreadyBorrowing && !existingRecord.getId().equals(id)) {
+                response.put("error", "Conflict with an existing rental.");
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+            }
+
+            existingRecord.setCar(car);
+            existingRecord.setCustomer(customer);
+
+            if (requestDTO.getReturnDate() != null) {
+                if (requestDTO.getReturnDate().isBefore(existingRecord.getRentDate())) {
+                    response.put("error", "Return date cannot be before rent date.");
+                    return ResponseEntity.badRequest().body(response); 
+                }
+
+                if (requestDTO.getReturnDate().isBefore(LocalDateTime.now())) {
+                    existingRecord.setStatus("RETURNED");
+                } else {
+                    existingRecord.setStatus("RENTED");
+                }
+                existingRecord.setReturnDate(requestDTO.getReturnDate());
+            } else {
+                response.put("error", "Return date cannot be null.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            BorrowingRecord updatedRecord = borrowingRecordService.update(existingRecord);
+            BorrowingRecordResponseDTO responseDTO = updatedRecord.convertToResponse();
+
+            response.put("message", "Record updated successfully.");
+            response.put("data", responseDTO.toString());
+            return ResponseEntity.ok(response);
+
+        } catch (BorrowingRecordNotFoundException e) {
+            response.put("error", "Data not found.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
+        } catch (BorrowingRecordAlreadyExistsException e) {
+            response.put("error", "Data already exists.");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+
+        } catch (IllegalArgumentException e) {
+            response.put("error", "Invalid return date.");
+            return ResponseEntity.badRequest().body(response);
+
+        } catch (IllegalStateException e) {
+            response.put("error", "Record has already been returned and cannot be updated.");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
         }
-        BorrowingRecord existingRecord = borrowingRecordService.findById(id);
-
-        if (existingRecord.getReturnDate() != null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(null);
-        }
-        Car car = carService.getOneById(requestDTO.getCarId());
-        Customer customer = customerService.findById(requestDTO.getCustomerId());
-
-        boolean alreadyBorrowing = borrowingRecordService.isCarAlreadyRentedByCustomer(requestDTO.getCustomerId(), requestDTO.getCarId());
-
-        if (alreadyBorrowing && !existingRecord.getId().equals(id)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(null); 
-        }
-
-        existingRecord.setCar(car);
-        existingRecord.setCustomer(customer);
-        existingRecord.setReturnDate(requestDTO.getReturnDate());
-        existingRecord.setStatus("RETURNED");
-
-        BorrowingRecord updatedRecord = borrowingRecordService.update(existingRecord);
-        BorrowingRecordResponseDTO responseDTO = updatedRecord.convertToResponse();
-
-        return ResponseEntity.ok(responseDTO);
     }
 
     @DeleteMapping("/{id}")

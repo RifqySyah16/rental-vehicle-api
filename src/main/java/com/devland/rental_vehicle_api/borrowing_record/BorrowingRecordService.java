@@ -49,29 +49,40 @@ public class BorrowingRecordService {
     public BorrowingRecord update(int id, BorrowingRecordUpdateRequestDTO requestDTO) {
         BorrowingRecord existingRecord = this.borrowingRecordRepository.findById(id)
                 .orElseThrow(() -> new BorrowingRecordNotFoundException("Record not found with id " + id));
+    
+        if ("RETURNED".equals(existingRecord.getStatus())) {
+            throw new IllegalStateException("Cannot update a record that has already been returned");
+        }
 
         Car car = carService.getOneById(requestDTO.getCarId());
         Customer customer = customerService.findById(requestDTO.getCustomerId());
-
+    
         boolean alreadyBorrowing = borrowingRecordRepository.existsByCustomerIdAndCarIdAndStatus(
             requestDTO.getCustomerId(), requestDTO.getCarId(), "RENTED");
-
+    
         if (alreadyBorrowing && !existingRecord.getId().equals(id)) {
             throw new BorrowingRecordAlreadyExistsException("Customer is already renting this car");
         }
-
+    
         existingRecord.setCar(car);
         existingRecord.setCustomer(customer);
-
+    
         if (requestDTO.getReturnDate() != null) {
             existingRecord.setReturnDate(requestDTO.getReturnDate());
-            existingRecord.setStatus("RETURNED");
+
+            if (requestDTO.getReturnDate().isBefore(LocalDateTime.now()) || 
+                requestDTO.getReturnDate().isEqual(LocalDateTime.now())) {
+                existingRecord.setStatus("RETURNED");
+            } else {
+                existingRecord.setStatus("RENTED");
+            }
         } else {
             throw new IllegalArgumentException("Return date cannot be null");
         }
         
         return this.borrowingRecordRepository.save(existingRecord);
     }
+    
 
     public BorrowingRecord update(BorrowingRecord borrowingRecord) {
         return this.borrowingRecordRepository.save(borrowingRecord);

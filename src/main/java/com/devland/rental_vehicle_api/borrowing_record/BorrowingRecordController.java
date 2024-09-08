@@ -92,12 +92,25 @@ public class BorrowingRecordController {
             return ResponseEntity.badRequest().body(null);
         }
         BorrowingRecord existingRecord = borrowingRecordService.findById(id);
+
+        if (existingRecord.getReturnDate() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(null);
+        }
         Car car = carService.getOneById(requestDTO.getCarId());
         Customer customer = customerService.findById(requestDTO.getCustomerId());
+
+        boolean alreadyBorrowing = borrowingRecordService.isCarAlreadyRentedByCustomer(requestDTO.getCustomerId(), requestDTO.getCarId());
+
+        if (alreadyBorrowing && !existingRecord.getId().equals(id)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(null); 
+        }
 
         existingRecord.setCar(car);
         existingRecord.setCustomer(customer);
         existingRecord.setReturnDate(requestDTO.getReturnDate());
+        existingRecord.setStatus("RETURNED");
 
         BorrowingRecord updatedRecord = borrowingRecordService.update(existingRecord);
         BorrowingRecordResponseDTO responseDTO = updatedRecord.convertToResponse();

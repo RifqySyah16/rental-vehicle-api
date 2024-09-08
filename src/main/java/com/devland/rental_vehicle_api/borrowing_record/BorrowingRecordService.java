@@ -65,6 +65,7 @@ public class BorrowingRecordService {
 
         if (requestDTO.getReturnDate() != null) {
             existingRecord.setReturnDate(requestDTO.getReturnDate());
+            existingRecord.setStatus("RETURNED");
         } else {
             throw new IllegalArgumentException("Return date cannot be null");
         }
@@ -79,5 +80,9 @@ public class BorrowingRecordService {
     public void deleteById(int id) {
         this.findById(id);
         this.borrowingRecordRepository.deleteById(id);
+    }
+
+    public boolean isCarAlreadyRentedByCustomer(int customerId, Integer carId) {
+        return borrowingRecordRepository.existsByCustomerIdAndCarIdAndStatus(customerId, carId, "RENTED");
     }
 }
